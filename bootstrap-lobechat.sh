@@ -19,6 +19,7 @@ REPO_URL="${REPO_URL:-https://github.com/FinnSolly2/lobechat-aws.git}"  # <-- se
 REPO_REF="${REPO_REF:-main}"
 APP_DIR="${APP_DIR:-$HOME/lobechat-aws}"
 DOMAIN="esade-user81-lobechat.duckdns.org"
+CASDOOR_DOMAIN="esade-user81-casdoor.duckdns.org"   # dedicated host for Casdoor
 NEW_REDIRECT_URI="https://${DOMAIN}"
 PROF_REDIRECT_MATCH="${PROF_REDIRECT_MATCH:-wsl.ymbihq.local}"  # string in init_data.json to replace
 CADDY_EMAIL="${CADDY_EMAIL:-finnsolly2@gmail.com}"
@@ -121,12 +122,12 @@ command -v jq >/dev/null 2>&1 || sudo apt-get install -y -qq jq
 [[ -f "$INIT_DATA" ]] || die "$INIT_DATA not found"
 
 # Prefix substitutions — done on the host:port prefix only, so any trailing
-# path (e.g. /api/auth/callback/casdoor) is preserved. LobeChat is served at
-# the domain root; Casdoor is served under the /casdoor subpath via Caddy.
+# path (e.g. /api/auth/callback/casdoor) is preserved. LobeChat and Casdoor
+# each run at the root of their own dedicated hostname.
 OLD_LOBE="http://${PROF_REDIRECT_MATCH}:47000"
 OLD_CASDOOR="http://${PROF_REDIRECT_MATCH}:47002"
 NEW_LOBE="https://${DOMAIN}"
-NEW_CASDOOR="https://${DOMAIN}/casdoor"
+NEW_CASDOOR="https://${CASDOOR_DOMAIN}"
 # Casdoor webhook target: localhost:3210 resolves to Casdoor's own container,
 # not LobeChat. Use the Docker service name on the internal port instead.
 OLD_WEBHOOK="http://localhost:3210"
@@ -161,7 +162,7 @@ ENV_FILE="$APP_DIR/.env"
   echo "APP_URL=${NEW_REDIRECT_URI}"
   echo "AUTH_URL=https://${DOMAIN}"
   echo "NEXTAUTH_URL=https://${DOMAIN}"
-  echo "AUTH_CASDOOR_ISSUER=https://${DOMAIN}/casdoor"
+  echo "AUTH_CASDOOR_ISSUER=https://${CASDOOR_DOMAIN}"
   echo ""
   echo "# Non-secret defaults"
   echo "MINIO_ROOT_USER=minioadmin"
@@ -192,14 +193,11 @@ DESIRED_CADDY="$(cat <<EOF
 }
 
 ${DOMAIN} {
-    # Casdoor SSO — strip the /casdoor prefix so Casdoor sees root paths.
-    handle_path /casdoor/* {
-        reverse_proxy localhost:47002
-    }
-    # Everything else -> LobeChat.
-    handle {
-        reverse_proxy localhost:47000
-    }
+    reverse_proxy localhost:47000
+}
+
+${CASDOOR_DOMAIN} {
+    reverse_proxy localhost:47002
 }
 EOF
 )"
