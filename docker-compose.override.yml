@@ -12,12 +12,8 @@ services:
   vllm:
     image: python:3.11-slim
     container_name: vllm
-    # Clear the nvidia device reservation from the base file — lists are
-    # replaced (not merged) on override, so [] removes the GPU requirement.
-    deploy:
-      resources:
-        reservations:
-          devices: []
+    # No `deploy` block needed: the GPU reservation has been removed from
+    # docker-compose.yml directly (Compose won't clear it via an override).
     command:
       - python
       - "-c"

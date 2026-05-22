@@ -114,13 +114,10 @@ services:
       --trust-remote-code
       --max-model-len 4096
       --gpu-memory-utilization 0.9
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # NOTE: GPU reservation removed — this host has no NVIDIA GPU.
+    # docker-compose.override.yml replaces this service with a CPU-only mock.
+    # (An empty `devices: []` in the override does NOT clear a base-file
+    # reservation, so the deploy block must be dropped here directly.)
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
