@@ -35,10 +35,11 @@ services:
       # NextAuth SSO configuration
       - NEXT_AUTH_SSO_PROVIDERS=casdoor
       - NEXT_AUTH_SECRET=${NEXT_AUTH_SECRET}
-      - NEXTAUTH_URL=http://${HOST_DOMAIN:-localhost}:${LOBECHAT_PORT:-47000}
+      # URLs come from .env (HTTPS via Caddy); inline value is a local-dev fallback.
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://${HOST_DOMAIN:-localhost}:${LOBECHAT_PORT:-47000}}
       - AUTH_URL=http://${HOST_DOMAIN:-localhost}:${LOBECHAT_PORT:-47000}
       # Casdoor configuration
-      - AUTH_CASDOOR_ISSUER=http://${HOST_DOMAIN:-localhost}:${CASDOOR_PORT:-47002}
+      - AUTH_CASDOOR_ISSUER=${AUTH_CASDOOR_ISSUER:-http://${HOST_DOMAIN:-localhost}:${CASDOOR_PORT:-47002}}
       - AUTH_CASDOOR_ID=${AUTH_CASDOOR_ID}
       - AUTH_CASDOOR_SECRET=${AUTH_CASDOOR_SECRET}
       # Trust custom hostname for NextAuth
