@@ -1,0 +1,5 @@
+# Force LF line endings for shell scripts so they run on Linux even when
+# edited/committed from Windows. A CRLF in a script breaks the shebang
+# ("bad interpreter: /usr/bin/env bash^M").
+*.sh text eol=lf
+db/migrate text eol=lf

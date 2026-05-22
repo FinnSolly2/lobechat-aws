@@ -7,6 +7,10 @@ contrib/
 # Environment files with secrets
 .env
 
+# Secret-export scripts (template + any filled-in copy)
+set-env-template.sh
+set-env*.sh
+
 # Python
 __pycache__/
 *.py[cod]

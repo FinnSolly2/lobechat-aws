@@ -21,7 +21,9 @@ services:
     image: lobehub/lobe-chat-database
     container_name: lobe-chat
     ports:
-      - "${LOBECHAT_PORT:-47000}:3210"
+      # Bound to loopback only — LobeChat is reachable solely via the Caddy
+      # reverse proxy (HTTPS/443). Port 47000 is never exposed publicly.
+      - "127.0.0.1:${LOBECHAT_PORT:-47000}:3210"
     volumes:
       # HOTFIX: Patch MCP callTool to add session retry logic
       - ./patches/route.js:/app/.next/server/app/(backend)/trpc/tools/[trpc]/route.js:ro

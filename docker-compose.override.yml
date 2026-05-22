@@ -1,0 +1,63 @@
+# docker-compose.override.yml
+#
+# Replaces the GPU-backed vLLM service with a minimal Python HTTP server.
+# Used on hosts without an NVIDIA GPU (e.g. EC2 m5.xlarge). The mock answers
+# 200 on /health and /v1/models so lobe-chat's `depends_on: vllm (healthy)`
+# condition is satisfied. Actual LLM inference goes through OpenRouter.
+#
+# Applied automatically by:
+#   docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
+
+services:
+  vllm:
+    image: python:3.11-slim
+    container_name: vllm
+    # Clear the nvidia device reservation from the base file — lists are
+    # replaced (not merged) on override, so [] removes the GPU requirement.
+    deploy:
+      resources:
+        reservations:
+          devices: []
+    command:
+      - python
+      - "-c"
+      - |
+        import json
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        class Handler(BaseHTTPRequestHandler):
+            def _json(self, code, body):
+                payload = json.dumps(body).encode()
+                self.send_response(code)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def do_GET(self):
+                if self.path == "/health":
+                    self._json(200, {"status": "ok"})
+                elif self.path == "/v1/models":
+                    self._json(200, {
+                        "object": "list",
+                        "data": [{"id": "mock-vllm", "object": "model", "owned_by": "mock"}],
+                    })
+                else:
+                    self._json(404, {"error": "not found"})
+
+            def log_message(self, fmt, *args):
+                pass  # silence per-request logging
+
+        print("mock vLLM listening on :8000", flush=True)
+        HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+    # python:3.11-slim has no curl, so override the base curl healthcheck.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - "-c"
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
