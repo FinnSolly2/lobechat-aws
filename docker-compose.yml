@@ -20,6 +20,11 @@ services:
   lobe-chat:
     image: lobehub/lobe-chat-database
     container_name: lobe-chat
+    # Resolve the public Casdoor hostname to the host's Caddy (not the EIP),
+    # so server-side OIDC calls (token/userinfo) avoid NAT hairpinning while
+    # still getting a valid TLS cert. Browser uses the same URL via public DNS.
+    extra_hosts:
+      - "${CASDOOR_DOMAIN:-esade-user81-casdoor.duckdns.org}:host-gateway"
     ports:
       # Bound to loopback only — LobeChat is reachable solely via the Caddy
       # reverse proxy (HTTPS/443). Port 47000 is never exposed publicly.
