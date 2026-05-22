@@ -20,10 +20,13 @@ services:
   lobe-chat:
     image: lobehub/lobe-chat-database
     container_name: lobe-chat
-    # Resolve the public Casdoor hostname to the host's Caddy (not the EIP),
-    # so server-side OIDC calls (token/userinfo) avoid NAT hairpinning while
-    # still getting a valid TLS cert. Browser uses the same URL via public DNS.
+    # Resolve both public hostnames to the host's Caddy (not the EIP), so
+    # server-side calls — OIDC token/userinfo to Casdoor, and any fetch of
+    # lobe-chat's own APP_URL during the OAuth callback — avoid NAT
+    # hairpinning while still getting a valid TLS cert. The browser uses the
+    # same URLs via public DNS, so APP_URL stays the external domain.
     extra_hosts:
+      - "${HOST_DOMAIN:-esade-user81-lobechat.duckdns.org}:host-gateway"
       - "${CASDOOR_DOMAIN:-esade-user81-casdoor.duckdns.org}:host-gateway"
     ports:
       # Bound to loopback only — LobeChat is reachable solely via the Caddy
