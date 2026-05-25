@@ -29,15 +29,16 @@ services:
       - "${HOST_DOMAIN:-esade-user81-lobechat.duckdns.org}:host-gateway"
       - "${CASDOOR_DOMAIN:-esade-user81-casdoor.duckdns.org}:host-gateway"
     ports:
-      # Bound to loopback only — LobeChat is reachable solely via the Caddy
-      # reverse proxy (HTTPS/443). Port 47000 is never exposed publicly.
-      - "127.0.0.1:${LOBECHAT_PORT:-47000}:3210"
+      # Bind on all interfaces so the Docker bridge gateway (172.17.0.1) can
+      # reach LobeChat during the OAuth callback. Port 47000 is blocked at the
+      # AWS security group — Caddy still proxies it over HTTPS/443.
+      - "${LOBECHAT_PORT:-47000}:3210"
     volumes:
       # HOTFIX: Patch MCP callTool to add session retry logic
       - ./patches/route.js:/app/.next/server/app/(backend)/trpc/tools/[trpc]/route.js:ro
     environment:
       # App configuration
-      - APP_URL=http://${HOST_DOMAIN:-localhost}:${LOBECHAT_PORT:-47000}
+      - APP_URL=${APP_URL:-http://${HOST_DOMAIN:-localhost}:${LOBECHAT_PORT:-47000}}
       # Database configuration
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/lobechat
       # NextAuth SSO configuration
