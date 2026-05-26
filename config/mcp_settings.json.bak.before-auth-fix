@@ -138,8 +138,8 @@
     "routing": {
       "enableGlobalRoute": true,
       "enableGroupNameRoute": true,
-      "enableBearerAuth": true,
-      "bearerAuthKey": "b78bf5fb74de2b9c671593c39f19cfeb096552b7a3ce1a9bb3c2972c70eb8c28",
+      "enableBearerAuth": false,
+      "bearerAuthKey": "",
       "skipAuth": false
     },
     "install": {
@@ -158,19 +158,9 @@
   "users": [
     {
       "username": "admin",
-      "password": "$2b$10$KLDIbeCBvCVHgq.3t/l5suTuYqfTDboQE/HJrOmdNoNHjeHWJrk9e",
+      "password": "$2b$10$Du6UuKrCKMhCfUbRIlDPE.ixXMmDfDzLw4hM0ac4y/VGB4.FJXS/e",
       "isAdmin": true
     }
   ],
-  "bearerKeys": [
-    {
-      "id": "26956cff-8c43-4979-aacd-4251a1ab3c0e",
-      "name": "lobechat",
-      "token": "b78bf5fb74de2b9c671593c39f19cfeb096552b7a3ce1a9bb3c2972c70eb8c28",
-      "enabled": true,
-      "accessType": "all",
-      "allowedGroups": [],
-      "allowedServers": []
-    }
-  ]
+  "bearerKeys": []
 }
