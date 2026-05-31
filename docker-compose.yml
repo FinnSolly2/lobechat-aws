@@ -95,6 +95,8 @@ services:
       - "${MCPHUB_PORT:-47008}:3000"
     environment:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      # Bearer token substituted into mcp_settings.json (routing.bearerAuthKey / bearerKeys[].token)
+      - MCPHUB_BEARER_KEY=${MCPHUB_BEARER_KEY}
       - SSH_HOST=${SSH_HOST}
       - SSH_PORT=${SSH_PORT:-22}
       - SSH_USERNAME=${SSH_USERNAME}

@@ -139,7 +139,7 @@
       "enableGlobalRoute": true,
       "enableGroupNameRoute": true,
       "enableBearerAuth": true,
-      "bearerAuthKey": "b78bf5fb74de2b9c671593c39f19cfeb096552b7a3ce1a9bb3c2972c70eb8c28",
+      "bearerAuthKey": "${MCPHUB_BEARER_KEY}",
       "skipAuth": false
     },
     "install": {
@@ -166,7 +166,7 @@
     {
       "id": "26956cff-8c43-4979-aacd-4251a1ab3c0e",
       "name": "lobechat",
-      "token": "b78bf5fb74de2b9c671593c39f19cfeb096552b7a3ce1a9bb3c2972c70eb8c28",
+      "token": "${MCPHUB_BEARER_KEY}",
       "enabled": true,
       "accessType": "all",
       "allowedGroups": [],
