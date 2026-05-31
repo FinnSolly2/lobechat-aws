@@ -7,7 +7,11 @@
 #
 #   export KEY_VAULTS_SECRET=...  NEXT_AUTH_SECRET=...  OPENROUTER_API_KEY=...
 #   export POSTGRES_PASSWORD=...  MINIO_ROOT_PASSWORD=...
-#   export MCPHUB_ADMIN_PASSWORD=...  HOST_DOMAIN=...
+#   export MCPHUB_ADMIN_PASSWORD=...  MCPHUB_ADMIN_PASSWORD_HASH=...
+#   export MCPHUB_BEARER_KEY=...  AUTH_CASDOOR_SECRET=...
+#   export CASDOOR_BUILTIN_CLIENT_SECRET=...  CASDOOR_LDAP_BIND_PASSWORD=...
+#   export CASDOOR_DEFAULT_USER_PASSWORD=...  CASDOOR_DEFAULT_ADMIN_PASSWORD=...
+#   export HOST_DOMAIN=...
 #   ./bootstrap-lobechat.sh
 #
 set -euo pipefail
@@ -24,6 +28,9 @@ NEW_REDIRECT_URI="https://${DOMAIN}"
 PROF_REDIRECT_MATCH="${PROF_REDIRECT_MATCH:-wsl.ymbihq.local}"  # string in init_data.json to replace
 CADDY_EMAIL="${CADDY_EMAIL:-finnsolly2@gmail.com}"
 INIT_DATA="config/init_data.json"
+INIT_DATA_TEMPLATE="config/init_data.json.tpl"
+MCP_SETTINGS="config/mcp_settings.json"
+MCP_SETTINGS_TEMPLATE="config/mcp_settings.json.tpl"
 
 # Env vars that MUST be exported before running; written verbatim into .env
 REQUIRED_ENV=(
@@ -33,13 +40,21 @@ REQUIRED_ENV=(
   POSTGRES_PASSWORD
   MINIO_ROOT_PASSWORD
   MCPHUB_ADMIN_PASSWORD
+  MCPHUB_ADMIN_PASSWORD_HASH
+  MCPHUB_BEARER_KEY
+  AUTH_CASDOOR_SECRET
+  CASDOOR_BUILTIN_CLIENT_SECRET
+  CASDOOR_LDAP_BIND_PASSWORD
+  CASDOOR_DEFAULT_USER_PASSWORD
+  CASDOOR_DEFAULT_ADMIN_PASSWORD
   HOST_DOMAIN
 )
 # Optional env vars — written to .env only if set
 OPTIONAL_ENV=(
   HF_TOKEN
   AUTH_CASDOOR_ID
-  AUTH_CASDOOR_SECRET
+  OPENAPI_MCP_HEADERS
+  AWS_DEFAULT_REGION
 )
 
 # ---------------------------------------------------------------------------
@@ -116,7 +131,31 @@ cd "$APP_DIR"
 log "repository ready at $APP_DIR"
 
 # ---------------------------------------------------------------------------
-step "5. Patching URLs in $INIT_DATA (duckdns domain + Caddy subpath)"
+step "5. Rendering config templates from environment variables"
+# ---------------------------------------------------------------------------
+command -v envsubst >/dev/null 2>&1 || sudo apt-get install -y -qq gettext-base
+[[ -f "$INIT_DATA_TEMPLATE" ]] || die "$INIT_DATA_TEMPLATE not found"
+[[ -f "$MCP_SETTINGS_TEMPLATE" ]] || die "$MCP_SETTINGS_TEMPLATE not found"
+
+# Keep existing default unless overridden by environment.
+export MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}"
+
+# Render only the variables that must be materialized at boot time.
+envsubst '${AUTH_CASDOOR_SECRET} ${CASDOOR_BUILTIN_CLIENT_SECRET} ${CASDOOR_LDAP_BIND_PASSWORD} ${CASDOOR_DEFAULT_USER_PASSWORD} ${CASDOOR_DEFAULT_ADMIN_PASSWORD}' \
+  < "$INIT_DATA_TEMPLATE" > "$INIT_DATA"
+envsubst '${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} ${MCPHUB_ADMIN_PASSWORD_HASH} ${MCPHUB_BEARER_KEY}' \
+  < "$MCP_SETTINGS_TEMPLATE" > "$MCP_SETTINGS"
+
+if grep -nE '\$\{(AUTH_CASDOOR_SECRET|CASDOOR_BUILTIN_CLIENT_SECRET|CASDOOR_LDAP_BIND_PASSWORD|CASDOOR_DEFAULT_USER_PASSWORD|CASDOOR_DEFAULT_ADMIN_PASSWORD)\}' "$INIT_DATA" >/dev/null 2>&1; then
+  die "init_data rendering failed: unresolved secret placeholders remain"
+fi
+if grep -nE '\$\{(MINIO_ROOT_USER|MINIO_ROOT_PASSWORD|MCPHUB_ADMIN_PASSWORD_HASH|MCPHUB_BEARER_KEY)\}' "$MCP_SETTINGS" >/dev/null 2>&1; then
+  die "mcp_settings rendering failed: unresolved secret placeholders remain"
+fi
+log "rendered $INIT_DATA and $MCP_SETTINGS from templates"
+
+# ---------------------------------------------------------------------------
+step "6. Patching URLs in $INIT_DATA (duckdns domain + Caddy subpath)"
 # ---------------------------------------------------------------------------
 command -v jq >/dev/null 2>&1 || sudo apt-get install -y -qq jq
 [[ -f "$INIT_DATA" ]] || die "$INIT_DATA not found"
@@ -154,7 +193,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-step "6. Writing .env from environment variables"
+step "7. Writing .env from environment variables"
 # ---------------------------------------------------------------------------
 ENV_FILE="$APP_DIR/.env"
 {
@@ -166,7 +205,7 @@ ENV_FILE="$APP_DIR/.env"
   echo ""
   echo "# Non-secret defaults"
   echo "CASDOOR_DOMAIN=${CASDOOR_DOMAIN}"
-  echo "MINIO_ROOT_USER=minioadmin"
+  echo "MINIO_ROOT_USER=${MINIO_ROOT_USER}"
   echo "S3_BUCKET=lobe"
   echo "AWS_REGION=eu-west-1"
   echo "LOBECHAT_PORT=47000"
@@ -178,6 +217,7 @@ ENV_FILE="$APP_DIR/.env"
   echo "MCPHUB_PORT=47008"
   echo ""
   echo "# Secrets / host-specific (from environment)"
+  echo "ADMIN_PASSWORD=${MCPHUB_ADMIN_PASSWORD}"
   for v in "${REQUIRED_ENV[@]}"; do echo "${v}=${!v}"; done
   for v in "${OPTIONAL_ENV[@]}"; do [[ -n "${!v:-}" ]] && echo "${v}=${!v}"; done
 } > "$ENV_FILE"
@@ -185,7 +225,7 @@ chmod 600 "$ENV_FILE"
 log ".env written ($(grep -c '=' "$ENV_FILE") keys, mode 600 — not committed to git)"
 
 # ---------------------------------------------------------------------------
-step "7. Configuring Caddy reverse proxy"
+step "8. Configuring Caddy reverse proxy"
 # ---------------------------------------------------------------------------
 CADDYFILE="/etc/caddy/Caddyfile"
 DESIRED_CADDY="$(cat <<EOF
@@ -212,7 +252,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-step "8. Starting the stack (compose + override)"
+step "9. Starting the stack (compose + override)"
 # ---------------------------------------------------------------------------
 [[ -f docker-compose.yml ]]          || die "docker-compose.yml not found"
 [[ -f docker-compose.override.yml ]] || die "docker-compose.override.yml not found (vLLM mock)"
