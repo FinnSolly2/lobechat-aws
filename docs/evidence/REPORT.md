@@ -72,3 +72,7 @@ vllm              python:3.11-slim             "python -c 'import j…"   vllm  
 ```
 
 *Run on EC2 (`ubuntu@ip-172-31-36-25`). All 6 services are Up. `minio`, `postgres`, and `vllm` (mock) report healthy. `lobe-chat`, `casdoor`, and `mcphub` do not define a Docker healthcheck in the compose file but are confirmed working via the browser screenshots above. Qdrant is not part of the single-EC2 deployment; its architecture role is addressed in Q2.*
+
+## 8. Secrets handling note (SSM limitation)
+
+Secrets are currently injected via a local `.env` file (`chmod 600`, gitignored) rather than AWS SSM Parameter Store in this sandbox run. The active sandbox identity is `arn:aws:sts::864672670602:assumed-role/AWSReservedSSO_esadeis_IsbUsersPS_58fae52d3d72e807/esade.sandbox.user81` (`aws sts get-caller-identity` succeeds), but direct SSM checks return `AccessDeniedException` for both `ssm:DescribeParameters` and `ssm:PutParameter` (no identity-based policy allows those actions). For that reason, the implementation demonstrates secrets externalization via env-injected templates and documents the intended production SSM/Secrets Manager pull-at-boot path (parameter naming, IAM scope, bootstrap retrieval flow) in `docs/evidence/q2/a1.md`.
