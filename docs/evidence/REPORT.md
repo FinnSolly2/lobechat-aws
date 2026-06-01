@@ -7,7 +7,7 @@
 | Student name | Finn Luca Solly |
 | ESADE email | finnluca.solly@alumni.esade.edu |
 | GitHub repo URL | https://github.com/FinnSolly2/lobechat-aws (private; user `joseporiolrius` invited as collaborator) |
-| Latest commit SHA | Recorded in the post-final commit — resolve with `git rev-parse final-v0.6.0` |
+| Latest commit SHA | `8b2a8fd8b05df0ed4b41c09f4b774fe2332c6b13` (tag `final-v0.6.0`) |
 | Final tag | `final-v0.6.0` |
 
 ## 2. Public URL
