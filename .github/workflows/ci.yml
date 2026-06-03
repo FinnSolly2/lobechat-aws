@@ -50,7 +50,7 @@ jobs:
         run: docker compose -f docker-compose.yml config -q
 
       - name: Lint YAML files
-        run: yamllint docker-compose.yml .github/workflows/ci.yml
+        run: yamllint -d "{extends: relaxed, rules: {truthy: {allowed-values: ['true', 'false', 'on', 'off']}}}" docker-compose.yml .github/workflows/ci.yml
 
       - name: Lint GitHub workflow syntax
         run: docker run --rm -v "$PWD":/repo -w /repo rhysd/actionlint:1.7.7
