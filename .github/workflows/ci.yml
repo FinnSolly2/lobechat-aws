@@ -8,9 +8,11 @@ on:
 jobs:
   static-gates:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Full git history is required for gitleaks and cz --rev-range.
 
@@ -19,8 +21,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends docker-compose-plugin python3-pip curl unzip
+          # docker compose is already available on GitHub-hosted ubuntu runners.
+          docker compose version
+          if ! python3 -m pip --version >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends python3-pip
+          fi
           python3 -m pip install --user yamllint
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
