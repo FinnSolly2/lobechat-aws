@@ -1,0 +1,106 @@
+name: Static CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  static-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full git history is required for gitleaks and cz --rev-range.
+
+      - name: Install tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends docker-compose-plugin python3-pip curl unzip
+          python3 -m pip install --user yamllint
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+          HADOLINT_VERSION="v2.12.0"
+          curl -sSfL "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-Linux-x86_64" -o hadolint
+          chmod +x hadolint
+          sudo mv hadolint /usr/local/bin/hadolint
+
+          ACTIONLINT_VERSION="1.7.7"
+          curl -sSfL "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" -o actionlint.tgz
+          tar -xzf actionlint.tgz actionlint
+          chmod +x actionlint
+          sudo mv actionlint /usr/local/bin/actionlint
+          rm -f actionlint.tgz
+
+          GITLEAKS_VERSION="8.24.3"
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tgz
+          tar -xzf gitleaks.tgz gitleaks
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          rm -f gitleaks.tgz
+
+          TRIVY_VERSION="0.53.0"
+          curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -o trivy.tgz
+          tar -xzf trivy.tgz trivy
+          chmod +x trivy
+          sudo mv trivy /usr/local/bin/trivy
+          rm -f trivy.tgz
+
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Prepare safe Compose interpolation values
+        shell: bash
+        run: |
+          # Safe because .env is ignored by .gitignore and .env.example contains placeholders, not real secrets.
+          cp .env.example .env
+          grep -q '^OPENAPI_MCP_HEADERS=' .env || echo 'OPENAPI_MCP_HEADERS=Authorization=Bearer dummy-token' >> .env
+
+      - name: Hadolint Dockerfiles
+        continue-on-error: true
+        run: |
+          hadolint dockerfiles/sandbox.Dockerfile
+          hadolint dockerfiles/mcphub.Dockerfile
+
+      - name: Validate Compose syntax and interpolation
+        run: docker compose -f docker-compose.yml config -q
+
+      - name: Lint YAML files
+        run: yamllint docker-compose.yml .github/workflows/ci.yml
+
+      - name: Lint GitHub workflow syntax
+        run: actionlint
+
+      - name: Secret scan with gitleaks
+        continue-on-error: true
+        run: gitleaks detect --source . --verbose
+
+      - name: Trivy filesystem scan
+        continue-on-error: true
+        run: trivy fs .
+
+      - name: Trivy config scan
+        continue-on-error: true
+        run: trivy config docker-compose.yml dockerfiles/
+
+      - name: Validate conventional commits with commitizen
+        shell: bash
+        run: |
+          # Mirrors local commit gate in .githooks/commit-msg (which uses --commit-msg-file) with CI-safe rev-range linting.
+          uv sync --group dev
+          if git rev-parse --verify origin/main >/dev/null 2>&1; then
+            REV_RANGE="origin/main..HEAD"
+          else
+            REV_RANGE="$(git rev-list --max-count=2 HEAD | tail -n 1)..HEAD"
+          fi
+          uv run cz check --rev-range "$REV_RANGE"
+
+      - name: Build-free policy reminder
+        run: |
+          # tests/ are live-stack integration tests (openai/httpx against running services such as vLLM /health), so they are excluded here.
+          # This CI is static-only: no docker build, no compose up/run, no pytest.
+          echo "Static analysis complete."
