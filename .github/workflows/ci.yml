@@ -30,32 +30,6 @@ jobs:
           python3 -m pip install --user yamllint
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-          HADOLINT_VERSION="v2.12.0"
-          curl -sSfL "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-linux-x86_64" -o hadolint
-          chmod +x hadolint
-          sudo mv hadolint /usr/local/bin/hadolint
-
-          ACTIONLINT_VERSION="1.7.7"
-          curl -sSfL "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" -o actionlint.tgz
-          tar -xzf actionlint.tgz actionlint
-          chmod +x actionlint
-          sudo mv actionlint /usr/local/bin/actionlint
-          rm -f actionlint.tgz
-
-          GITLEAKS_VERSION="8.24.3"
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tgz
-          tar -xzf gitleaks.tgz gitleaks
-          chmod +x gitleaks
-          sudo mv gitleaks /usr/local/bin/gitleaks
-          rm -f gitleaks.tgz
-
-          TRIVY_VERSION="0.53.0"
-          curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -o trivy.tgz
-          tar -xzf trivy.tgz trivy
-          chmod +x trivy
-          sudo mv trivy /usr/local/bin/trivy
-          rm -f trivy.tgz
-
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
@@ -69,8 +43,8 @@ jobs:
       - name: Hadolint Dockerfiles
         continue-on-error: true
         run: |
-          hadolint dockerfiles/sandbox.Dockerfile
-          hadolint dockerfiles/mcphub.Dockerfile
+          docker run --rm -v "$PWD":/work -w /work hadolint/hadolint:v2.12.0 dockerfiles/sandbox.Dockerfile
+          docker run --rm -v "$PWD":/work -w /work hadolint/hadolint:v2.12.0 dockerfiles/mcphub.Dockerfile
 
       - name: Validate Compose syntax and interpolation
         run: docker compose -f docker-compose.yml config -q
@@ -79,19 +53,19 @@ jobs:
         run: yamllint docker-compose.yml .github/workflows/ci.yml
 
       - name: Lint GitHub workflow syntax
-        run: actionlint
+        run: docker run --rm -v "$PWD":/repo -w /repo rhysd/actionlint:1.7.7
 
       - name: Secret scan with gitleaks
         continue-on-error: true
-        run: gitleaks detect --source . --verbose
+        run: docker run --rm -v "$PWD":/repo -w /repo zricethezav/gitleaks:v8.24.3 detect --source /repo --verbose
 
       - name: Trivy filesystem scan
         continue-on-error: true
-        run: trivy fs .
+        run: docker run --rm -v "$PWD":/repo -w /repo aquasec/trivy:0.53.0 fs /repo
 
       - name: Trivy config scan
         continue-on-error: true
-        run: trivy config docker-compose.yml dockerfiles/
+        run: docker run --rm -v "$PWD":/repo -w /repo aquasec/trivy:0.53.0 config docker-compose.yml dockerfiles/
 
       - name: Validate conventional commits with commitizen
         shell: bash
