@@ -31,7 +31,7 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
           HADOLINT_VERSION="v2.12.0"
-          curl -sSfL "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-Linux-x86_64" -o hadolint
+          curl -sSfL "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-linux-x86_64" -o hadolint
           chmod +x hadolint
           sudo mv hadolint /usr/local/bin/hadolint
 
