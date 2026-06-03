@@ -58,7 +58,7 @@ jobs:
 
       - name: Secret scan with gitleaks
         continue-on-error: true
-        run: docker run --rm -v "$PWD":/repo -w /repo zricethezav/gitleaks:v8.24.3 detect --source /repo --verbose
+        run: docker run --rm -v "$PWD":/repo -w /repo zricethezav/gitleaks:v8.24.3 detect --source /repo --log-opts="origin/main..HEAD" --verbose
 
       - name: Trivy filesystem scan
         continue-on-error: true
