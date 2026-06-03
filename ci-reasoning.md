@@ -1,13 +1,14 @@
 # CI reasoning for `lobechat-aws`
 
-![GitHub Actions run evidence](docs/evidence/ci/actions-run.png)
+![GitHub Actions run evidence](docs/evidence/ci/actions-run.PNG)
 
-- **Actions run URL:** `TO_FILL_AFTER_PUSH`
-- **Commit SHA executed by that run:** `TO_FILL_AFTER_PUSH`
+- **Actions run URL:** `https://github.com/FinnSolly2/lobechat-aws/actions/runs/26871268850`
+- **Commit SHA executed by that run:** `00c646786646623889dc1a25edfe637df3c87416`
 
 ## Part A - Why what I did matters (repository-specific)
 
 This repository currently has no CI, so I added a build-free static pipeline that catches issues without running the 11-service stack.
+I intentionally set **hadolint**, **gitleaks**, and **trivy** as warn-only (`continue-on-error: true`) so findings are visible without blocking every run while the inherited backlog is still being remediated.
 
 1. **Hadolint on both Dockerfiles** catches risky image and Dockerfile practices in this exact repo:
    - `dockerfiles/mcphub.Dockerfile:1` uses `FROM samanhappy/mcphub:latest` (floating tag; non-reproducible base image).
