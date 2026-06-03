@@ -1,6 +1,6 @@
 # CI reasoning for `lobechat-aws`
 
-![GitHub Actions run evidence](docs/evidence/ci/actions-run.PNG)
+![GitHub Actions run evidence](docs/evidence/ci/actions-run.png)
 
 - **Actions run URL:** `https://github.com/FinnSolly2/lobechat-aws/actions/runs/26871268850`
 - **Commit SHA executed by that run:** `00c646786646623889dc1a25edfe637df3c87416`
