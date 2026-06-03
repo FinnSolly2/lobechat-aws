@@ -2,8 +2,9 @@
 
 ![GitHub Actions run evidence](docs/evidence/ci/actions-run.png)
 
-- **Actions run URL:** `https://github.com/FinnSolly2/lobechat-aws/actions/runs/26871268850`
-- **Commit SHA executed by that run:** `00c646786646623889dc1a25edfe637df3c87416`
+- **Actions run URL:** `https://github.com/FinnSolly2/lobechat-aws/actions/runs/26870908873/job/79245722781`
+- **Commit SHA executed by that run:** `98003abe5e6a06b601490c0d455ff1c5c140bc23`
+- **Note:** the screenshot above is this run on commit `98003ab`; later commits on `final-exam` only add the evidence screenshot and this reasoning doc (`docs/evidence/ci/actions-run.png` + `ci-reasoning.md`), they do not change `.github/workflows/ci.yml`.
 
 ## Part A - Why what I did matters (repository-specific)
 
